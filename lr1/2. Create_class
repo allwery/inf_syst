@@ -33,11 +33,11 @@ class Buyer:
   def get_contact(self):
     return self._contact
 
-  def set_contact_person(self, contact):
+  def set_contact(self, contact):
     self._contact = contact
 
   def __str__(self):
-    return f"Buyer(id={self._id}, name='{self._name}', address='{self._address}', phone='{self._phone}', contact_person='{self._contact}')"
+    return f"Buyer(ID ={self._id}, Имя ='{self._name}', Адрес ='{self._address}', Телефон ='{self._phone}', Контакт ='{self._contact}')"
 
 
 buyer1 = Buyer(1, "Иван Иванов", "ул. Ленина, 1", "+79123456789", "Иван")
