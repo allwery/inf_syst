@@ -1,0 +1,44 @@
+class Buyer:
+  def __init__(self, id, name, address, phone, contact):
+    self._id = id
+    self._name = name
+    self._address = address
+    self._phone = phone
+    self._contact = contact
+
+  def get_id(self):
+    return self._id
+
+  def set_id(self, id):
+    self._id = id
+
+  def get_name(self):
+    return self._name
+
+  def set_name(self, name):
+    self._name = name
+
+  def get_address(self):
+    return self._address
+
+  def set_address(self, address):
+    self._address = address
+
+  def get_phone(self):
+    return self._phone
+
+  def set_phone(self, phone):
+    self._phone = phone
+
+  def get_contact(self):
+    return self._contact
+
+  def set_contact_person(self, contact):
+    self._contact = contact
+
+  def __str__(self):
+    return f"Buyer(id={self._id}, name='{self._name}', address='{self._address}', phone='{self._phone}', contact_person='{self._contact}')"
+
+
+buyer1 = Buyer(1, "Иван Иванов", "ул. Ленина, 1", "+79123456789", "Иван")
+print(buyer1) 
