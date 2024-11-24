@@ -55,8 +55,8 @@ class Buyer:
     def set_phone(self, phone):
         return self._phone
 
-    def set_phone(self, phone):
-        self._phone = phone
+    def get_phone(self):
+        return self._phone
 
     def get_contact(self):
         return self._contact
