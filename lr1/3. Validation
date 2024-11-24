@@ -52,8 +52,8 @@ class Buyer:
     def set_address(self, address):
         self._address = address
 
-    def set_contact(self, contact):
-        self._contact = contact
+    def set_phone(self, phone):
+        return self._phone
 
     def set_phone(self, phone):
         self._phone = phone
