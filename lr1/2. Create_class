@@ -40,5 +40,5 @@ class Buyer:
     return f"Buyer(ID ={self._id}, Имя ='{self._name}', Адрес ='{self._address}', Телефон ='{self._phone}', Контакт ='{self._contact}')"
 
 
-buyer1 = Buyer(1, "Иван Иванов", "ул. Ленина, 1", "+79123456789", "Иван")
+buyer1 = Buyer(1, "Ванек Ванькович", "Ленина 1", "+777777777", "Ванек")
 print(buyer1) 
