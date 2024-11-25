@@ -86,20 +86,20 @@ class Buyer:
     return f"Buyer(ID={self._id}, Имя='{self._name}', Адрес='{self._address}', Телефон='{self._phone}', Контактное лицо='{self._contact}')"
 
 try: #обычный
-  buyer1 = Buyer(1, "Иван Иванов", "ул. Ленина, 1", "+777777777", "Иван")
+  buyer1 = Buyer(1, "Ванек Ванькович", "Ленина 1", "+777777777", "Ванек")
   print(buyer1)
 except ValueError as e:
   print(f"Error: {e}")
 
 try: #пробуем для формата ;__;__
-  buyer2 = Buyer("2;Петр Петров;ул. Пушкина, 10;+88888888;Петр")
+  buyer2 = Buyer("2;Леха отличник;Пушкина 1;+88888888;Леха")
   print(buyer2)
 except ValueError as e:
   print(f"Error: {e}")
 
 try: #для словаря
   buyer3 = Buyer(
-    {'ID': 3, 'Имя': 'Сидоров', 'Адрес': 'ул.Дружбы, 1', 'Телефон': '+77777777', 'Контактное лицо': 'Сидор'})
+    {'ID': 3, 'Имя': 'Димон', 'Адрес': 'Дружбы 1', 'Телефон': '+77777777', 'Контактное лицо': 'Димас'})
   print(buyer3)
 except ValueError as e:
   print(f"Error: {e}")
