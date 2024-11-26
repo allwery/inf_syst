@@ -108,8 +108,8 @@ try: #обычный
   short_buyer = BuyerShort(buyer1)
 
   print(repr(buyer1))
-  buyer_short_from_string = BuyerShort(Buyer("1;Ванек Ванькович;Ленина 1;+777777777;Ванек"))
-  print(buyer_short_from_string)
+  buyer_short = BuyerShort(Buyer("1;Ванек Ванькович;Ленина 1;+777777777;Ванек"))
+  print(buyer_short)
 except ValueError as e:
   print(f"Error: {e}")
 
