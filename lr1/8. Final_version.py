@@ -19,7 +19,7 @@ class Buyer:
         else:
             raise ValueError("Неверные аргументы для конструктора.")
 
-    def _validate_and_set(self, id, name, address, phone, contact):
+    def _validate_set(self, id, name, address, phone, contact):
         Buyer.validate_field("ID", id, int)
         Buyer.validate_field("Имя", name, str)
         Buyer.validate_field("Адрес", address, str)
@@ -38,7 +38,7 @@ class Buyer:
             if len(parts) != 5:
                 raise ValueError("Неверный формат строки.")
             id, name, address, phone, contact = parts
-            self._validate_and_set(int(id), name, address, phone, contact)
+            self._validate_set(int(id), name, address, phone, contact)
         except (ValueError, IndexError) as e:
             raise ValueError(f"Ошибка при разборе строки: {e}")
 
@@ -49,7 +49,7 @@ class Buyer:
             address = data_dict['Адрес']
             phone = data_dict['Телефон']
             contact = data_dict['Контактная информация']
-            self._validate_and_set(id, name, address, phone, contact)
+            self._validate_set(id, name, address, phone, contact)
         except (KeyError, ValueError) as e:
             raise ValueError(f"Ошибка при разборе словаря: {e}")
 
