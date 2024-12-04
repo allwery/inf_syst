@@ -1,15 +1,15 @@
-import mysql.connector
+import psycopg2
 
 class DatabaseConnector:
     __instance = None
 
     @staticmethod
-    def get_instance(host, user, password, database, port=3306):
+    def get_instance(host, user, password, database, port=5432):
         if DatabaseConnector.__instance is None:
             DatabaseConnector(host, user, password, database, port)
         return DatabaseConnector.__instance
 
-    def __init__(self, host, user, password, database, port=3306):
+    def __init__(self, host, user, password, database, port=5432):
         if DatabaseConnector.__instance is not None:
             raise Exception("Это паттерн 'Одиночка'")
         else:
@@ -17,16 +17,16 @@ class DatabaseConnector:
             self.connection = None
             self.cursor = None
             try:
-                self.connection = mysql.connector.connect(
+                self.connection = psycopg2.connect(
                     host=host,
                     user=user,
                     password=password,
                     database=database,
                     port=port
                 )
-                self.cursor = self.connection.cursor(dictionary=True)
-            except mysql.connector.Error as e:
-                print(f"Ошибка подключения к базе данных MySQL: {e}")
+                self.cursor = self.connection.cursor()
+            except psycopg2.Error as e:
+                print(f"Ошибка подключения к базе данных PostgreSQL: {e}")
 
     def execute_query(self, query, params=None):
         try:
@@ -36,7 +36,7 @@ class DatabaseConnector:
                 self.cursor.execute(query)
             self.connection.commit()
             return self.cursor
-        except mysql.connector.Error as e:
+        except psycopg2.Error as e:
             print(f"Ошибка выполнения запроса: {e}")
             if self.connection:
                 self.connection.rollback()
@@ -55,7 +55,7 @@ class BuyerRepDB:
     def initialize_db(self):
         cursor = self.db_connector.execute_query("""
             CREATE TABLE IF NOT EXISTS Buyers (
-                ID INT AUTO_INCREMENT PRIMARY KEY,
+                ID SERIAL PRIMARY KEY,
                 Name VARCHAR(255) NOT NULL,
                 Address TEXT NOT NULL,
                 Phone VARCHAR(20) NOT NULL,
@@ -63,30 +63,32 @@ class BuyerRepDB:
             )
         """)
         if cursor:
-            print("База данных MySQL и таблица 'Buyers' успешно созданы.")
+            print("База данных PostgreSQL и таблица 'Buyers' успешно созданы.")
 
     def get_buyer_by_id(self, buyer_id):
         cursor = self.db_connector.execute_query("SELECT * FROM Buyers WHERE ID = %s", (buyer_id,))
         if cursor:
             result = cursor.fetchone()
-            return result
+            return dict(zip([desc[0] for desc in cursor.description], result)) if result else None
         return None
 
     def get_all_buyers(self):
         cursor = self.db_connector.execute_query("SELECT * FROM Buyers")
         if cursor:
-            return cursor.fetchall()
+            results = cursor.fetchall()
+            return [dict(zip([desc[0] for desc in cursor.description], row)) for row in results]
         return []
 
     def add_buyer(self, buyer_data):
         query = """INSERT INTO Buyers (Name, Address, Phone, Contact) 
-                  VALUES (%s, %s, %s, %s)"""
+                  VALUES (%s, %s, %s, %s) RETURNING ID;"""
         cursor = self.db_connector.execute_query(query, (buyer_data['Name'],
                                                          buyer_data['Address'],
                                                          buyer_data['Phone'],
                                                          buyer_data['Contact']))
         if cursor:
-            return cursor.lastrowid
+            result = cursor.fetchone()
+            return result[0] if result else None
         return None
 
     def replace_buyer(self, buyer_id, updated_buyer):
@@ -106,10 +108,10 @@ class BuyerRepDB:
         return cursor is not None
 
     def get_count(self):
-        cursor = self.db_connector.execute_query("SELECT COUNT(*) as count FROM Buyers")
+        cursor = self.db_connector.execute_query("SELECT COUNT(*) FROM Buyers")
         if cursor:
             result = cursor.fetchone()
-            return result['count'] if result else 0
+            return result[0] if result else 0
         return 0
 
     def get_k_n_short_list(self, k, n):
@@ -117,7 +119,7 @@ class BuyerRepDB:
         cursor = self.db_connector.execute_query("SELECT Name, Address, Phone, Contact FROM Buyers LIMIT %s OFFSET %s", (n, offset))
         if cursor:
             results = cursor.fetchall()
-            return results
+            return [dict(zip(['Name', 'Address', 'Phone', 'Contact'], row)) for row in results]
         return []
 
 
@@ -204,8 +206,8 @@ def run_operations(buyer_rep):
 
 def main():
     host = 'localhost'
-    user = 'Vadim'
-    password = 'vadimb10'
+    user = 'postgres'  
+    password = 'vadimb'  
     database = 'Buyers'
 
     db_connector = DatabaseConnector.get_instance(host, user, password, database)
@@ -221,3 +223,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
