@@ -1,25 +1,20 @@
-import mysql.connector
+import psycopg2
 
 class BuyerRepDB:
-    def __init__(self,
-                 host,
-                 user,
-                 password,
-                 database,
-                 port = 3306):
+    def __init__(self, host, user, password, database, port=5432):
         self.connection = None
         self.cursor = None
         try:
-            self.connection = mysql.connector.connect(
+            self.connection = psycopg2.connect(
                 host=host,
                 user=user,
                 password=password,
                 database=database,
-                port = port
+                port=port
             )
-            self.cursor = self.connection.cursor(dictionary=True)
-        except mysql.connector.Error as e:
-            print(f"Ошибка подключения к базе данных MySQL: {e}")
+            self.cursor = self.connection.cursor()
+        except psycopg2.Error as e:
+            print(f"Ошибка подключения к базе данных PostgreSQL: {e}")
 
     def close(self):
         if self.connection:
@@ -30,7 +25,7 @@ class BuyerRepDB:
         try:
             self.cursor.execute("""
                 CREATE TABLE IF NOT EXISTS Buyers (
-                    ID INT AUTO_INCREMENT PRIMARY KEY,
+                    ID SERIAL PRIMARY KEY,
                     Name VARCHAR(255) NOT NULL,
                     Address TEXT NOT NULL,
                     Phone VARCHAR(20) NOT NULL,
@@ -38,8 +33,8 @@ class BuyerRepDB:
                 )
             """)
             self.connection.commit()
-            print("База данных MySQL и таблица 'Buyers' успешно созданы.")
-        except mysql.connector.Error as e:
+            print("База данных PostgreSQL и таблица 'Buyers' успешно созданы.")
+        except psycopg2.Error as e:
             print(f"Ошибка создания таблицы: {e}")
             if self.connection:
                 self.connection.rollback()
@@ -48,27 +43,31 @@ class BuyerRepDB:
         try:
             self.cursor.execute("SELECT * FROM Buyers WHERE ID = %s", (buyer_id,))
             result = self.cursor.fetchone()
-            return result
-        except mysql.connector.Error as e:
+            return dict(zip([desc[0] for desc in self.cursor.description], result)) if result else None
+        except psycopg2.Error as e:
             print(f"Ошибка получения покупателя по ID: {e}")
             return None
 
     def get_all_buyers(self):
         try:
             self.cursor.execute("SELECT * FROM Buyers")
-            return self.cursor.fetchall()
-        except mysql.connector.Error as e:
+            results = self.cursor.fetchall()
+            return [dict(zip([desc[0] for desc in self.cursor.description], row)) for row in results]
+        except psycopg2.Error as e:
             print(f"Ошибка получения всех покупателей: {e}")
             return []
 
     def add_buyer(self, buyer_data):
         try:
             query = """INSERT INTO Buyers (Name, Address, Phone, Contact) 
-                      VALUES (%s, %s, %s, %s)"""
-            self.cursor.execute(query, (buyer_data['Name'], buyer_data['Address'], buyer_data['Phone'], buyer_data['Contact']))
+                      VALUES (%s, %s, %s, %s) RETURNING ID;"""
+            self.cursor.execute(query, (buyer_data['Name'],
+                                        buyer_data['Address'],
+                                        buyer_data['Phone'],
+                                        buyer_data['Contact']))
             self.connection.commit()
-            return self.cursor.lastrowid
-        except mysql.connector.Error as e:
+            return self.cursor.fetchone()[0]
+        except psycopg2.Error as e:
             print(f"Ошибка добавления покупателя: {e}")
             if self.connection:
                 self.connection.rollback()
@@ -79,10 +78,14 @@ class BuyerRepDB:
             query = """UPDATE Buyers 
                       SET Name = %s, Address = %s, Phone = %s, Contact = %s 
                       WHERE ID = %s"""
-            self.cursor.execute(query, (updated_buyer['Name'], updated_buyer['Address'], updated_buyer['Phone'], updated_buyer['Contact'], buyer_id))
+            self.cursor.execute(query, (updated_buyer['Name'],
+                                        updated_buyer['Address'],
+                                        updated_buyer['Phone'],
+                                        updated_buyer['Contact'],
+                                        buyer_id))
             self.connection.commit()
             print("Данные покупателя успешно обновлены.")
-        except mysql.connector.Error as e:
+        except psycopg2.Error as e:
             print(f"Ошибка обновления покупателя: {e}")
             if self.connection:
                 self.connection.rollback()
@@ -91,8 +94,8 @@ class BuyerRepDB:
         try:
             self.cursor.execute("DELETE FROM Buyers WHERE ID = %s", (buyer_id,))
             self.connection.commit()
-            return True #возвращает True если удаление прошло успешно
-        except mysql.connector.Error as e:
+            return True
+        except psycopg2.Error as e:
             print(f"Ошибка удаления покупателя: {e}")
             if self.connection:
                 self.connection.rollback()
@@ -100,10 +103,10 @@ class BuyerRepDB:
 
     def get_count(self):
         try:
-            self.cursor.execute("SELECT COUNT(*) as count FROM Buyers")
+            self.cursor.execute("SELECT COUNT(*) FROM Buyers")
             result = self.cursor.fetchone()
-            return result['count'] if result else 0
-        except mysql.connector.Error as e:
+            return result[0] if result else 0
+        except psycopg2.Error as e:
             print(f"Ошибка получения количества покупателей: {e}")
             return 0
 
@@ -112,8 +115,8 @@ class BuyerRepDB:
         try:
             self.cursor.execute("SELECT Name, Address, Phone, Contact FROM Buyers LIMIT %s OFFSET %s", (n, offset))
             results = self.cursor.fetchall()
-            return results
-        except mysql.connector.Error as e:
+            return [dict(zip(['Name', 'Address', 'Phone', 'Contact'], row)) for row in results]
+        except psycopg2.Error as e:
             print(f"Ошибка получения списка покупателей: {e}")
             return []
 
@@ -200,30 +203,16 @@ def run_operations(buyer_rep):
 
 def main():
     host = 'localhost'
-    user = 'Vadim'
-    password = 'vadimb10'
+    user = 'postgres'
+    password = 'vadimb'
     database = 'Buyers'
 
+    buyer_rep = None
     try:
         buyer_rep = BuyerRepDB(host, user, password, database)
         buyer_rep.initialize_db()
-
-        while True:
-            print("\nМеню:")
-            print("1. Работа с базой данных")
-            print("2. Выход")
-
-            choice = input("Выберите действие: ")
-
-            if choice == "1":
-                run_operations(buyer_rep)
-            elif choice == "2":
-                print("Выход...")
-                break
-            else:
-                print("Неверный выбор.")
-
-    except mysql.connector.Error as e:
+        run_operations(buyer_rep)
+    except psycopg2.Error as e:
         print(f"Ошибка подключения к базе данных: {e}")
     except Exception as e:
         print(f"Произошла непредвиденная ошибка: {e}")
