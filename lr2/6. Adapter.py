@@ -54,12 +54,33 @@ class BuyerShort:
 
 
 class BuyerRep:
-    def __init__(self, filepath):
+    def __init__(self, filepath=""):
         self.filepath = filepath
         self.buyers = []
         self.next_id = 1
         if os.path.exists(self.filepath):
             self.load_data()
+
+    def load_data(self):
+        pass
+
+    def save_data(self):
+        pass
+
+    def get_all_buyers(self):
+        return self.buyers
+
+    def add_buyer(self, name, address, phone, contact):
+        new_buyer = Buyer(self.next_id, name, address, phone, contact)
+        self.buyers.append(new_buyer)
+        self.next_id += 1
+        self.save_data()
+        return True
+
+    def delete_buyer(self, buyer_id):
+        self.buyers = [b for b in self.buyers if b._id != buyer_id]
+        self.save_data()
+        return True
 
     def get_buyer_by_id(self, buyer_id):
         for buyer in self.buyers:
@@ -76,36 +97,16 @@ class BuyerRep:
         except AttributeError:
             print(f"Поле '{field}' не найдено.")
 
-    def add_buyer(self, name, address, phone, contact):
-        new_buyer = Buyer(self.next_id, name, address, phone, contact)
-        self.buyers.append(new_buyer)
-        self.next_id += 1
-        self.save_data()
-        return new_buyer
-
-    def replace_buyer(self, buyer_id, name, address, phone, contact):
-        buyer = self.get_buyer_by_id(buyer_id)
-        if buyer:
-            buyer._name = name
-            buyer._address = address
-            buyer._phone = phone
-            buyer._contact = contact
-            self.save_data()
-            return True
-        return False
-
-    def delete_buyer(self, buyer_id):
-        self.buyers = [b for b in self.buyers if b._id != buyer_id]
-        self.save_data()
-
     def get_count(self):
         return len(self.buyers)
 
-    def load_data(self):
-        pass
-
-    def save_data(self):
-        pass
+    def replace_buyer(self, buyer_id, name, address, phone, contact):
+        for i, buyer in enumerate(self.buyers):
+            if buyer._id == buyer_id:
+                self.buyers[i] = Buyer(buyer_id, name, address, phone, contact)
+                self.save_data()
+                return True
+        return False
 
 
 class BuyerRepJSON(BuyerRep):
@@ -130,9 +131,6 @@ class BuyerRepJSON(BuyerRep):
         except (FileNotFoundError, json.JSONDecodeError) as e:
             print(f"Ошибка при сохранении в JSON: {e}")
 
-    def get_all_buyers(self):
-        return self.buyers
-
 
 class BuyerRepYAML(BuyerRep):
     def __init__(self, filepath="buyers.yaml"):
@@ -156,9 +154,6 @@ class BuyerRepYAML(BuyerRep):
                 yaml.dump(data, f, allow_unicode=True, default_flow_style=False)
         except (FileNotFoundError, yaml.YAMLError) as e:
             print(f"Ошибка при сохранении в YAML: {e}")
-
-    def get_all_buyers(self):
-        return self.buyers
 
 
 class DatabaseConnector:
@@ -325,6 +320,19 @@ class BuyerRepDBAdapter(BuyerRep):
         except AttributeError:
             print(f"Поле '{field}' не найдено.")
 
+    def replace_buyer(self, buyer_id, name, address, phone, contact):
+        buyer = self.get_buyer_by_id(buyer_id)
+        if buyer:
+            buyer._name = name
+            buyer._address = address
+            buyer._phone = phone
+            buyer._contact = contact
+            self.db_rep.replace_buyer(buyer_id, {'Name': name, 'Address': address, 'Phone': phone,
+                                                 'Contact': contact})
+            self.buyers = self.db_rep.get_all_buyers()
+            return True
+        return False
+
     def get_count(self):
         return self.db_rep.get_count()
 
@@ -393,7 +401,9 @@ def run_operations(buyer_rep):
                 k = int(input("Введите начальный элемент (k): "))
                 n = int(input("Введите количество элементов (n): "))
                 short_list = buyer_rep.get_k_n_short_list(k, n)
-                print("\nКраткая информация о покупателях:", short_list)
+                print("\nКраткая информация о покупателях:")
+                for buyer in short_list:
+                    print(str(buyer))
             elif choice == "7":
                 count = buyer_rep.get_count()
                 print(f"Количество покупателей: {count}")
@@ -434,6 +444,9 @@ def main():
             db_connector.close()
     except ValueError as e:
         print(f"Ошибка: {e}")
+
+if __name__ == "__main__":
+    main()
 
 if __name__ == "__main__":
     main()
