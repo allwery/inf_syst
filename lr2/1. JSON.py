@@ -108,7 +108,7 @@ class Buyer_rep_json:
 
 
     def get_k_n_short_list(self, k, n):
-        return [BuyerShort(b) for b in self.buyers[k-1:k+n-1]]
+        return [BuyerShort(b) for b in self.buyers[k-1:k+n]]
 
 
     def sort_by_field(self, field):
@@ -197,7 +197,7 @@ def main():
                     print("Покупатель не найден.")
             elif choice == "6":
                 k = int(input("Введите начальный элемент (k): "))
-                n = int(input("Введите количество элементов (n): "))
+                n = int(input("Введите сколько взять (n): "))
                 short_list = buyer_rep.get_k_n_short_list(k, n)
                 print("\nКраткая информация о покупателях:", short_list)
             elif choice == "7":
