@@ -89,41 +89,42 @@ class Buyer:
        self._contact = contact
 
     def __str__(self):
-        return f"Buyer(ID ={self._id}, Имя ='{self._name}', Адрес ='{self._address}', Телефон ='{self._phone}', Контакт ='{self._contact}')"
+        return f"Buyer(ID={self._id}, Имя='{self._name}', Адрес='{self._address}', Телефон='{self._phone}', Контактное лицо='{self._contact}')"
+
+    def short_version(self):
+        return f"Buyer ID: {self._id}, Имя: {self._name}"
+
+    def __eq__(self, other):
+        if not isinstance(other, Buyer):
+            return False
+        return (self._id, self._name, self._address, self._phone, self._contact) == \
+            (other._id, other._name, other._address, other._phone, other._contact)
 
 
 try:
     buyer1 = Buyer(1, "Ваня", "Ленина 1", "+777777777", "Ванек")
     print(buyer1)
+    print(f"Краткая версия: {buyer1.short_version()}")
 except ValueError as e:
     print(f"Ошибка: {e}")
 
 try:
     buyer2 = Buyer("2;Леша;Пушкина 1;+88888888;Леха")
     print(buyer2)
+    print(f"Краткая версия: {buyer2.short_version()}")
 except ValueError as e:
     print(f"Ошибка: {e}")
 
 try:
     buyer3 = Buyer({'ID': 3, 'Имя': 'Димон', 'Адрес': 'Дружбы 1', 'Телефон': '+77777777', 'Контактное лицо': 'Димас'})
     print(buyer3)
+    print(f"Краткая версия: {buyer3.short_version()}")
 except ValueError as e:
     print(f"Ошибка: {e}")
 
-try:
-    buyer4 = Buyer("1; ;Ленина 1;+777777777;Ванек") # Проверка на пустое имя
-    print(buyer4)
-except ValueError as e:
-    print(f"Ошибка: {e}")
+buyer4 = Buyer(1, "Ваня", "Ленина 1", "+777777777", "Ванек")
+buyer5 = Buyer(1, "Ваня", "Ленина 1", "+777777777", "Ванек")
+buyer6 = Buyer(2, "Петя", "Пушкина 1", "+88888888", "Петров")
 
-try:
-    buyer5 = Buyer("1;Ванькович;Ленина 1;777777777;Ванек") # Проверка телефона без +
-    print(buyer5)
-except ValueError as e:
-    print(f"Ошибка: {e}")
-
-try:
-    buyer6 = Buyer({'ID': 3, 'Имя': '123', 'Адрес': 'Дружбы 1', 'Телефон': '+77777777', 'Контактное лицо': 'Димас'}) #Проверка имени с цифрами
-    print(buyer6)
-except ValueError as e:
-    print(f"Ошибка: {e}")
+print(f"buyer4 == buyer5: {buyer4 == buyer5}")  
+print(f"buyer4 == buyer6: {buyer4 == buyer6}")  
