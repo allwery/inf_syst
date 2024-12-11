@@ -1,11 +1,11 @@
-import json
-import os
-import re
 import yaml
+import os
+import json
+import re
 
 class Buyer:
     @staticmethod
-    def validate_field(field_name, field_value, expected_type):
+    def validate(field_name, field_value, expected_type):
         if not isinstance(field_value, expected_type):
             raise ValueError(f"Поле '{field_name}' должно быть типа {expected_type.__name__}.")
         if expected_type is str and not field_value.strip():
@@ -19,60 +19,24 @@ class Buyer:
         if expected_type is str and field_name == "Телефон" and not re.match(r"^\+\d+$", field_value):
             raise ValueError(f"Поле '{field_name}' должно начинаться с '+' и содержать только цифры.")
 
+
     def __init__(self, *args):
         if len(args) == 5:
             id, name, address, phone, contact = args
             self._validate(id, name, address, phone, contact)
-        elif len(args) == 1 and isinstance(args[0], str):
-            self._from_json(args[0])
-        elif len(args) == 1 and isinstance(args[0], Buyer):
-            self._from_buyer(args[0])
-        else:
-            raise ValueError("Неверные аргументы для конструктора.")
 
     def _validate(self, id, name, address, phone, contact):
-        Buyer.validate_field("ID", id, int)
-        Buyer.validate_field("Имя", name, str)
-        Buyer.validate_field("Адрес", address, str)
-        Buyer.validate_field("Телефон", phone, str)
-        Buyer.validate_field("Контакт", contact, str)
+        Buyer.validate("ID", id, int)
+        Buyer.validate("Имя", name, str)
+        Buyer.validate("Адрес", address, str)
+        Buyer.validate("Телефон", phone, str)
+        Buyer.validate("Контакт", contact, str)
 
         self._id = id
         self._name = name
         self._address = address
         self._phone = phone
         self._contact = contact
-
-    def _from_json(self, json_string):
-        try:
-            data = json.loads(json_string)
-            id = int(data['ID'])
-            name = data['Имя']
-            address = data['Адрес']
-            phone = data['Телефон']
-            contact = data['Контакт']
-            self._validate(id, name, address, phone, contact)
-        except (json.JSONDecodeError, KeyError, ValueError) as e:
-            raise ValueError(f"Ошибка при разборе JSON: {e}")
-
-    def _from_yaml(self, yaml_string):
-        try:
-            data = yaml.safe_load(yaml_string)
-            id = int(data['ID'])
-            name = data['Имя']
-            address = data['Адрес']
-            phone = data['Телефон']
-            contact = data['Контакт']
-            self._validate(id, name, address, phone, contact)
-        except (yaml.YAMLError, KeyError, ValueError) as e:
-            raise ValueError(f"Ошибка при разборе yaml: {e}")
-
-    def _from_buyer(self, buyer):
-        self._id = buyer._id
-        self._name = buyer._name
-        self._address = buyer._address
-        self._phone = buyer._phone
-        self._contact = buyer._contact
 
     def get_id(self):
         return self._id
@@ -116,7 +80,6 @@ class Buyer:
         return self._id == other._id
 
 
-
 class BuyerShort:
     def __init__(self, buyer):
         if not isinstance(buyer, Buyer):
@@ -133,34 +96,13 @@ class BuyerShort:
         return f"BuyerShort(ID={self.id}, Имя={self.name}, Телефон={self.phone})"
 
 
-class Buyer_rep_yaml:
-    def __init__(self, filepath="buyers.yaml"):
+class BuyerRep:
+    def __init__(self, filepath):
         self.filepath = filepath
         self.buyers = []
         self.next_id = 1
         if os.path.exists(self.filepath):
-            self.load_from_yaml()
-
-
-    def load_from_yaml(self):
-        try:
-            with open(self.filepath, "r") as f:
-                data = yaml.safe_load(f)
-                for item in data:
-                    self.buyers.append(Buyer(*item.values()))
-                self.next_id = max(b._id for b in self.buyers) + 1 if self.buyers else 1
-        except (FileNotFoundError, yaml.YAMLError) as e:
-            print(f"Ошибка при загрузке из JSON: {e}")
-
-
-    def save_to_yaml(self):
-        try:
-            data = [vars(b) for b in self.buyers]
-            with open(self.filepath, "w", encoding="utf-8") as f:
-                yaml.dump(data, f, allow_unicode=True, default_flow_style=False)
-        except (FileNotFoundError, yaml.YAMLError) as e:
-            print(f"Ошибка при сохранении в YAML: {e}")
-
+            self.load_data()
 
     def get_buyer_by_id(self, buyer_id):
         for buyer in self.buyers:
@@ -169,11 +111,11 @@ class Buyer_rep_yaml:
         return None
 
     def get_k_n_short_list(self, k, n):
-        return [BuyerShort(b) for b in self.buyers[k - 1:k + n - 1] if k + n - 1 <= len(self.buyers)]
+        return [BuyerShort(b) for b in self.buyers[k - 1:k + n - 1]]
 
     def sort_by_field(self, field):
         try:
-            self.buyers.sort(key=lambda x: getattr(x, f"_{field}"), reverse=False)
+            self.buyers.sort(key=lambda x: getattr(x, f"_{field}"))
         except AttributeError:
             print(f"Поле '{field}' не найдено.")
 
@@ -181,7 +123,7 @@ class Buyer_rep_yaml:
         new_buyer = Buyer(self.next_id, name, address, phone, contact)
         self.buyers.append(new_buyer)
         self.next_id += 1
-        self.save_to_yaml()
+        self.save_data()
         return new_buyer
 
     def replace_buyer(self, buyer_id, name, address, phone, contact):
@@ -191,20 +133,85 @@ class Buyer_rep_yaml:
             buyer._address = address
             buyer._phone = phone
             buyer._contact = contact
-            self.save_to_yaml()
+            self.save_data()
             return True
         return False
 
     def delete_buyer(self, buyer_id):
         self.buyers = [b for b in self.buyers if b._id != buyer_id]
-        self.save_to_yaml()
+        self.save_data()
 
     def get_count(self):
         return len(self.buyers)
 
+class BuyerRepJSON(BuyerRep):
+    def __init__(self, filepath="buyers.json"):
+        super().__init__(filepath)
+
+    def load_data(self):
+        try:
+            with open(self.filepath, "r") as f:
+                data = json.load(f)
+                for item in data:
+                    self.buyers.append(Buyer(*item.values()))
+                self.next_id = max(b._id for b in self.buyers) + 1 if self.buyers else 1
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            print(f"Ошибка при загрузке из JSON: {e}")
+
+    def save_data(self):
+        try:
+            data = [vars(b) for b in self.buyers]
+            with open(self.filepath, "w") as f:
+                json.dump(data, f, ensure_ascii=False, indent=4)
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            print(f"Ошибка при сохранении в JSON: {e}")
+
+class BuyerRepYAML(BuyerRep):
+    def __init__(self, filepath="buyers.yaml"):
+        super().__init__(filepath)
+
+    def load_data(self):
+        try:
+            with open(self.filepath, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+                if data:
+                    for buyer_data in data:
+                        self.buyers.append(Buyer(*buyer_data.values()))
+                    self.next_id = max(b._id for b in self.buyers) + 1 if self.buyers else 1
+        except (FileNotFoundError, yaml.YAMLError) as e:
+            print(f"Ошибка при загрузке из YAML: {e}")
+
+
+    def save_data(self):
+        try:
+            data = [vars(b) for b in self.buyers]
+            with open(self.filepath, "w", encoding="utf-8") as f:
+                yaml.dump(data, f, allow_unicode=True, default_flow_style=False)
+        except (FileNotFoundError, yaml.YAMLError) as e:
+            print(f"Ошибка при сохранении в YAML: {e}")
+
 
 def main():
-    buyer_rep = Buyer_rep_yaml()
+    while True:
+        print("\nМеню:")
+        print("1. Выбрать JSON")
+        print("2. Выбрать YAML")
+        print("3. Выход")
+
+        choice = input("Выберите тип: ")
+
+        if choice == "1":
+            buyer_rep = BuyerRepJSON()
+            run_operations(buyer_rep)
+        elif choice == "2":
+            buyer_rep = BuyerRepYAML()
+            run_operations(buyer_rep)
+        elif choice == "3":
+            print("Выход...")
+            break
+        else:
+            print("Неверный выбор.")
+def run_operations(buyer_rep):
     while True:
         print("\nМеню:")
         print("1. Вывести всех покупателей")
