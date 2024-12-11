@@ -15,7 +15,7 @@ class Buyer:
 
     def __init__(self, *args):
         if len(args) == 5:  # Обычный вызов конструктора
-            self._validate_and_set(*args)
+            self._validate(*args)
         elif len(args) == 1 and isinstance(args[0], str):  # Строка
             self._from_string(args[0])
         elif len(args) == 1 and isinstance(args[0], dict):  # Словарь
@@ -23,7 +23,7 @@ class Buyer:
         else:
             raise ValueError("Неверные аргументы конструктора.")
 
-    def _validate_and_set(self, id, name, address, phone, contact):
+    def _validate(self, id, name, address, phone, contact):
         self.validate_field("ID", id, int)
         self.validate_field("Имя", name, str)
         self.validate_field("Адрес", address, str)
@@ -42,7 +42,7 @@ class Buyer:
             if len(parts) != 5:
                 raise ValueError("Неправильный формат строки. Необходимо 5 значений, разделенных точкой с запятой.")
             id, name, address, phone, contact = parts
-            self._validate_and_set(int(id), name, address, phone, contact)
+            self._validate(int(id), name, address, phone, contact)
         except (ValueError, IndexError) as e:
             raise ValueError(f"Ошибка разбора строки: {e}")
 
@@ -53,7 +53,7 @@ class Buyer:
             address = data_dict['Адрес']
             phone = data_dict['Телефон']
             contact = data_dict['Контактное лицо']
-            self._validate_and_set(id, name, address, phone, contact)
+            self._validate(id, name, address, phone, contact)
         except (KeyError, ValueError) as e:
             raise ValueError(f"Ошибка разбора словаря: {e}")
 
