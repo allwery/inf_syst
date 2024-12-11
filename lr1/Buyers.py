@@ -7,7 +7,11 @@ class Buyer:
             raise ValueError(f"Поле '{field_name}' должно быть типа {expected_type.__name__}.")
         if expected_type is str and not field_value.strip():
             raise ValueError(f"Поле '{field_name}' не может быть пустым.")
-        if expected_type is str and not field_value.isalpha() and field_name in ["Имя", "Контактное лицо"]:
+        if expected_type is str and field_name == "Имя":
+            if not re.fullmatch(r"[А-Яа-яЁё]+\s[А-Яа-яЁё]+", field_value):
+                raise ValueError(
+                    f"Поле '{field_name}' должно содержать имя и фамилию, разделенные пробелом (только буквы).")
+        if expected_type is str and not field_value.isalpha() and field_name == "Контактное лицо":
             raise ValueError(f"Поле '{field_name}' должно содержать только буквы.")
         if expected_type is str and field_name == "Телефон" and not re.match(r"^\+\d+$", field_value):
             raise ValueError(f"Поле '{field_name}' должно начинаться с '+' и содержать только цифры.")
@@ -101,30 +105,37 @@ class Buyer:
             (other._id, other._name, other._address, other._phone, other._contact)
 
 
+class ShortBuyer:
+    def __init__(self, buyer):
+        if not isinstance(buyer, Buyer):
+            raise TypeError("Аргумент должен быть объектом класса Buyer.")
+        self.id = buyer.get_id()
+        name_parts = buyer.get_name().split()
+        if len(name_parts) >=2:
+          self.name = name_parts[-1][0] + ". " + name_parts[0]
+        else:
+          self.name = buyer.get_name()
+        self.phone = buyer.get_phone()
+
+
+    def __str__(self):
+        return f"ShortBuyer(ID={self.id}, Имя='{self.name}', Телефон='{self.phone}')"
+
 try:
-    buyer1 = Buyer(1, "Ваня", "Ленина 1", "+777777777", "Ванек")
-    print(buyer1)
-    print(f"Краткая версия: {buyer1.short_version()}")
+    buyer = Buyer(1, "Иван Иванов", "Ленина 1", "+77777777", "Вася")
+    short_buyer = ShortBuyer(buyer)
+    print(buyer)
+    print(short_buyer)
 except ValueError as e:
     print(f"Ошибка: {e}")
 
 try:
-    buyer2 = Buyer("2;Леша;Пушкина 1;+88888888;Леха")
-    print(buyer2)
-    print(f"Краткая версия: {buyer2.short_version()}")
+    buyer_err = Buyer(2, "Иванов", "Ленина 2", "+77777777", "Петя")
+    short_buyer_err = ShortBuyer(buyer_err)
+    print(buyer_err)
+    print(short_buyer_err)
 except ValueError as e:
     print(f"Ошибка: {e}")
-
-try:
-    buyer3 = Buyer({'ID': 3, 'Имя': 'Димон', 'Адрес': 'Дружбы 1', 'Телефон': '+77777777', 'Контактное лицо': 'Димас'})
-    print(buyer3)
-    print(f"Краткая версия: {buyer3.short_version()}")
-except ValueError as e:
-    print(f"Ошибка: {e}")
-
-buyer4 = Buyer(1, "Ваня", "Ленина 1", "+777777777", "Ванек")
-buyer5 = Buyer(1, "Ваня", "Ленина 1", "+777777777", "Ванек")
-buyer6 = Buyer(2, "Петя", "Пушкина 1", "+88888888", "Петров")
 
 print(f"buyer4 == buyer5: {buyer4 == buyer5}")  
 print(f"buyer4 == buyer6: {buyer4 == buyer6}")  
