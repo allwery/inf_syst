@@ -1,24 +1,61 @@
 import re
+
 class Buyer:
     @staticmethod
-    def validate_data(name, address, phone, contact):
-        if not isinstance(name, str) or not name.strip() or not name.isalpha():
-            raise ValueError("Имя должно быть непустой строкой, содержащей только буквы.")
-        if not isinstance(address, str):
-            raise ValueError("Адрес должен быть непустой строкой.")
-        if not isinstance(phone, str) or not re.match(r"^\+\d+$", phone):
-            raise ValueError("Номер телефона должен начинаться с '+' и содержать только цифры.")
-        if not isinstance(contact, str) or not contact.strip() or not contact.isalpha():
-            raise ValueError("Контактное лицо должно быть непустой строкой, содержащей только буквы.")
+    def validate_field(field_name, field_value, expected_type):
+        if not isinstance(field_value, expected_type):
+            raise ValueError(f"Поле '{field_name}' должно быть типа {expected_type.__name__}.")
+        if expected_type is str and not field_value.strip():
+            raise ValueError(f"Поле '{field_name}' не может быть пустым.")
+        if expected_type is str and not field_value.isalpha() and field_name in ["Имя", "Контактное лицо"]:
+            raise ValueError(f"Поле '{field_name}' должно содержать только буквы.")
+        if expected_type is str and field_name == "Телефон" and not re.match(r"^\+\d+$", field_value):
+            raise ValueError(f"Поле '{field_name}' должно начинаться с '+' и содержать только цифры.")
 
-    def __init__(self, id, name, address, phone, contact):
-        Buyer.validate_data(name, address, phone, contact)
+
+    def __init__(self, *args):
+        if len(args) == 5:  # Обычный вызов конструктора
+            self._validate_and_set(*args)
+        elif len(args) == 1 and isinstance(args[0], str):  # Строка
+            self._from_string(args[0])
+        elif len(args) == 1 and isinstance(args[0], dict):  # Словарь
+            self._from_dict(args[0])
+        else:
+            raise ValueError("Неверные аргументы конструктора.")
+
+    def _validate_and_set(self, id, name, address, phone, contact):
+        self.validate_field("ID", id, int)
+        self.validate_field("Имя", name, str)
+        self.validate_field("Адрес", address, str)
+        self.validate_field("Телефон", phone, str)
+        self.validate_field("Контактное лицо", contact, str)
 
         self._id = id
         self._name = name
         self._address = address
         self._phone = phone
         self._contact = contact
+
+    def _from_string(self, data_string):
+        try:
+            parts = data_string.split(';')
+            if len(parts) != 5:
+                raise ValueError("Неправильный формат строки. Необходимо 5 значений, разделенных точкой с запятой.")
+            id, name, address, phone, contact = parts
+            self._validate_and_set(int(id), name, address, phone, contact)
+        except (ValueError, IndexError) as e:
+            raise ValueError(f"Ошибка разбора строки: {e}")
+
+    def _from_dict(self, data_dict):
+        try:
+            id = int(data_dict['ID'])
+            name = data_dict['Имя']
+            address = data_dict['Адрес']
+            phone = data_dict['Телефон']
+            contact = data_dict['Контактное лицо']
+            self._validate_and_set(id, name, address, phone, contact)
+        except (KeyError, ValueError) as e:
+            raise ValueError(f"Ошибка разбора словаря: {e}")
 
 
     def get_id(self):
@@ -56,23 +93,37 @@ class Buyer:
 
 
 try:
-    buyer1 = Buyer(1, "Ванекк", "Ленина 1", "+777777777", "Ванек") #Всеправильно
+    buyer1 = Buyer(1, "Ваня", "Ленина 1", "+777777777", "Ванек")
     print(buyer1)
 except ValueError as e:
-    print(f"Ошибка создания покупателя: {e}")
+    print(f"Ошибка: {e}")
 
 try:
-    buyer2 = Buyer(2, "", "Пушкина 1", "+888888888", "123") #Неправильное имя и контакт
+    buyer2 = Buyer("2;Леша;Пушкина 1;+88888888;Леха")
     print(buyer2)
 except ValueError as e:
-    print(f"Ошибка создания покупателя: {e}")
+    print(f"Ошибка: {e}")
 
 try:
-    buyer3 = Buyer(3, 123, "Пушкина 1", "888888888", "Леха") #Неправильное имя и телефон
+    buyer3 = Buyer({'ID': 3, 'Имя': 'Димон', 'Адрес': 'Дружбы 1', 'Телефон': '+77777777', 'Контактное лицо': 'Димас'})
     print(buyer3)
 except ValueError as e:
-    print(f"Ошибка создания покупателя: {e}")
+    print(f"Ошибка: {e}")
 
+try:
+    buyer4 = Buyer("1; ;Ленина 1;+777777777;Ванек") # Проверка на пустое имя
+    print(buyer4)
+except ValueError as e:
+    print(f"Ошибка: {e}")
 
-buyer1 = Buyer(1, "Ванек Ванькович", "Ленина 1", "+777777777", "Ванек")
-print(buyer1) 
+try:
+    buyer5 = Buyer("1;Ванькович;Ленина 1;777777777;Ванек") # Проверка телефона без +
+    print(buyer5)
+except ValueError as e:
+    print(f"Ошибка: {e}")
+
+try:
+    buyer6 = Buyer({'ID': 3, 'Имя': '123', 'Адрес': 'Дружбы 1', 'Телефон': '+77777777', 'Контактное лицо': 'Димас'}) #Проверка имени с цифрами
+    print(buyer6)
+except ValueError as e:
+    print(f"Ошибка: {e}")
