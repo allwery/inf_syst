@@ -1,33 +1,18 @@
 import re
-
 class Buyer:
     @staticmethod
-    def validate_name(name):
+    def validate_data(name, address, phone, contact):
         if not isinstance(name, str) or not name.strip() or not name.isalpha():
             raise ValueError("Имя должно быть непустой строкой, содержащей только буквы.")
-
-    @staticmethod
-    def validate_address(address):
         if not isinstance(address, str):
             raise ValueError("Адрес должен быть непустой строкой.")
-
-    @staticmethod
-    def validate_phone(phone):
-        # Более строгая проверка формата телефона с использованием регулярных выражений
         if not isinstance(phone, str) or not re.match(r"^\+\d+$", phone):
             raise ValueError("Номер телефона должен начинаться с '+' и содержать только цифры.")
-
-    @staticmethod
-    def validate_contact(contact):
         if not isinstance(contact, str) or not contact.strip() or not contact.isalpha():
             raise ValueError("Контактное лицо должно быть непустой строкой, содержащей только буквы.")
 
-
     def __init__(self, id, name, address, phone, contact):
-        Buyer.validate_name(name)
-        Buyer.validate_address(address)
-        Buyer.validate_phone(phone)
-        Buyer.validate_contact(contact)
+        Buyer.validate_data(name, address, phone, contact)
 
         self._id = id
         self._name = name
