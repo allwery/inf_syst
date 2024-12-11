@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import yaml
 
 class Buyer:
     @staticmethod
@@ -53,6 +54,18 @@ class Buyer:
             self._validate(id, name, address, phone, contact)
         except (json.JSONDecodeError, KeyError, ValueError) as e:
             raise ValueError(f"Ошибка при разборе JSON: {e}")
+
+    def _from_yaml(self, yaml_string):
+        try:
+            data = yaml.safe_load(yaml_string)
+            id = int(data['ID'])
+            name = data['Имя']
+            address = data['Адрес']
+            phone = data['Телефон']
+            contact = data['Контакт']
+            self._validate(id, name, address, phone, contact)
+        except (yaml.YAMLError, KeyError, ValueError) as e:
+            raise ValueError(f"Ошибка при разборе yaml: {e}")
 
     def _from_buyer(self, buyer):
         self._id = buyer._id
@@ -120,33 +133,33 @@ class BuyerShort:
         return f"BuyerShort(ID={self.id}, Имя={self.name}, Телефон={self.phone})"
 
 
-class Buyer_rep_json:
-    def __init__(self, filepath="buyers.json"):
+class Buyer_rep_yaml:
+    def __init__(self, filepath="buyers.yaml"):
         self.filepath = filepath
         self.buyers = []
         self.next_id = 1
         if os.path.exists(self.filepath):
-            self.load_from_json()
+            self.load_from_yaml()
 
 
-    def load_from_json(self):
+    def load_from_yaml(self):
         try:
             with open(self.filepath, "r") as f:
-                data = json.load(f)
+                data = yaml.safe_load(f)
                 for item in data:
                     self.buyers.append(Buyer(*item.values()))
                 self.next_id = max(b._id for b in self.buyers) + 1 if self.buyers else 1
-        except (FileNotFoundError, json.JSONDecodeError) as e:
+        except (FileNotFoundError, yaml.YAMLError) as e:
             print(f"Ошибка при загрузке из JSON: {e}")
 
 
-    def save_to_json(self):
+    def save_to_yaml(self):
         try:
             data = [vars(b) for b in self.buyers]
-            with open(self.filepath, "w") as f:
-                json.dump(data, f, ensure_ascii=False, indent=4)
-        except (FileNotFoundError, json.JSONDecodeError) as e:
-            print(f"Ошибка при сохранении в JSON: {e}")
+            with open(self.filepath, "w", encoding="utf-8") as f:
+                yaml.dump(data, f, allow_unicode=True, default_flow_style=False)
+        except (FileNotFoundError, yaml.YAMLError) as e:
+            print(f"Ошибка при сохранении в YAML: {e}")
 
 
     def get_buyer_by_id(self, buyer_id):
@@ -168,7 +181,7 @@ class Buyer_rep_json:
         new_buyer = Buyer(self.next_id, name, address, phone, contact)
         self.buyers.append(new_buyer)
         self.next_id += 1
-        self.save_to_json()
+        self.save_to_yaml()
         return new_buyer
 
     def replace_buyer(self, buyer_id, name, address, phone, contact):
@@ -178,20 +191,20 @@ class Buyer_rep_json:
             buyer._address = address
             buyer._phone = phone
             buyer._contact = contact
-            self.save_to_json()
+            self.save_to_yaml()
             return True
         return False
 
     def delete_buyer(self, buyer_id):
         self.buyers = [b for b in self.buyers if b._id != buyer_id]
-        self.save_to_json()
+        self.save_to_yaml()
 
     def get_count(self):
         return len(self.buyers)
 
 
 def main():
-    buyer_rep = Buyer_rep_json()
+    buyer_rep = Buyer_rep_yaml()
     while True:
         print("\nМеню:")
         print("1. Вывести всех покупателей")
@@ -231,7 +244,7 @@ def main():
                     buyer._address = input(f"Новый адрес ({buyer._address}): ") or buyer._address
                     buyer._phone = input(f"Новый телефон ({buyer._phone}): ") or buyer._phone
                     buyer._contact = input(f"Новый контакт ({buyer._contact}): ") or buyer._contact
-                    buyer_rep.save_to_json()
+                    buyer_rep.save_to_yaml()
                     print("Данные покупателя изменены")
                 else:
                     print("Покупатель не найден")
