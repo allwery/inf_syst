@@ -1,125 +1,128 @@
 import psycopg2
 import re
 
-class BuyerRepDB:
+class DatabaseConnector:
+    __instance = None
+
+    @staticmethod
+    def get_instance(host, user, password, database, port=5432):
+        if DatabaseConnector.__instance is None:
+            DatabaseConnector(host, user, password, database, port)
+        return DatabaseConnector.__instance
+
     def __init__(self, host, user, password, database, port=5432):
-        self.connection = None
-        self.cursor = None
+        if DatabaseConnector.__instance is not None:
+            raise Exception("Это паттерн 'Одиночка'")
+        else:
+            DatabaseConnector.__instance = self
+            self.connection = None
+            self.cursor = None
+            try:
+                self.connection = psycopg2.connect(
+                    host=host,
+                    user=user,
+                    password=password,
+                    database=database,
+                    port=port
+                )
+                self.cursor = self.connection.cursor()
+            except psycopg2.Error as e:
+                print(f"Ошибка подключения к базе данных PostgreSQL: {e}")
+
+    def execute_query(self, query, params=None):
         try:
-            self.connection = psycopg2.connect(
-                host=host,
-                user=user,
-                password=password,
-                database=database,
-                port=port
-            )
-            self.cursor = self.connection.cursor()
+            if params:
+                self.cursor.execute(query, params)
+            else:
+                self.cursor.execute(query)
+            self.connection.commit()
+            return self.cursor
         except psycopg2.Error as e:
-            print(f"Ошибка подключения к базе данных PostgreSQL: {e}")
+            print(f"Ошибка выполнения запроса: {e}")
+            if self.connection:
+                self.connection.rollback()
+            return None
 
     def close(self):
         if self.connection:
             self.cursor.close()
             self.connection.close()
 
+
+class BuyerRepDB:
+    def __init__(self, db_connector):
+        self.db_connector = db_connector
+
     def initialize_db(self):
-        try:
-            self.cursor.execute("""
-                CREATE TABLE IF NOT EXISTS Buyers (
+        cursor = self.db_connector.execute_query("""
+           CREATE TABLE IF NOT EXISTS Buyers (
                     ID SERIAL PRIMARY KEY,
                     Name VARCHAR(255) NOT NULL CHECK (Name ~* '^[а-яА-Яa-zA-Z\s]+$'),
                     Address TEXT NOT NULL,
                     Phone VARCHAR(20) NOT NULL UNIQUE CHECK (Phone ~* '^\+\d+$'),
                     Contact TEXT NOT NULL CHECK (Contact ~* '^[а-яА-Яa-zA-Z\s]+$')
                 )
-            """)
-            self.connection.commit()
+        """)
+        if cursor:
             print("База данных PostgreSQL и таблица 'Buyers' успешно созданы.")
-        except psycopg2.Error as e:
-            print(f"Ошибка создания таблицы: {e}")
-            if self.connection:
-                self.connection.rollback()
 
     def get_buyer_by_id(self, buyer_id):
-        try:
-            self.cursor.execute("SELECT * FROM Buyers WHERE ID = %s", (buyer_id,))
-            result = self.cursor.fetchone()
-            return dict(zip([desc[0] for desc in self.cursor.description], result)) if result else None
-        except psycopg2.Error as e:
-            print(f"Ошибка получения покупателя по ID: {e}")
-            return None
+        cursor = self.db_connector.execute_query("SELECT * FROM Buyers WHERE ID = %s", (buyer_id,))
+        if cursor:
+            result = cursor.fetchone()
+            return dict(zip([desc[0] for desc in cursor.description], result)) if result else None
+        return None
 
     def get_all_buyers(self):
-        try:
-            self.cursor.execute("SELECT * FROM Buyers")
-            results = self.cursor.fetchall()
-            return [dict(zip([desc[0] for desc in self.cursor.description], row)) for row in results]
-        except psycopg2.Error as e:
-            print(f"Ошибка получения всех покупателей: {e}")
-            return []
+        cursor = self.db_connector.execute_query("SELECT * FROM Buyers")
+        if cursor:
+            results = cursor.fetchall()
+            return [dict(zip([desc[0] for desc in cursor.description], row)) for row in results]
+        return []
 
     def add_buyer(self, buyer_data):
-        try:
-            query = """INSERT INTO Buyers (Name, Address, Phone, Contact) 
-                      VALUES (%s, %s, %s, %s) RETURNING ID;"""
-            self.cursor.execute(query, (buyer_data['Name'],
-                                        buyer_data['Address'],
-                                        buyer_data['Phone'],
-                                        buyer_data['Contact']))
-            self.connection.commit()
-            return self.cursor.fetchone()[0]
-        except psycopg2.Error as e:
-            print(f"Ошибка добавления покупателя: {e}")
-            if self.connection:
-                self.connection.rollback()
-            return None
+        query = """INSERT INTO Buyers (Name, Address, Phone, Contact) 
+                  VALUES (%s, %s, %s, %s) RETURNING ID;"""
+        cursor = self.db_connector.execute_query(query, (buyer_data['Name'],
+                                                         buyer_data['Address'],
+                                                         buyer_data['Phone'],
+                                                         buyer_data['Contact']))
+        if cursor:
+            result = cursor.fetchone()
+            return result[0] if result else None
+        return None
 
     def replace_buyer(self, buyer_id, updated_buyer):
-        try:
-            query = """UPDATE Buyers 
-                      SET Name = %s, Address = %s, Phone = %s, Contact = %s 
-                      WHERE ID = %s"""
-            self.cursor.execute(query, (updated_buyer['Name'],
-                                        updated_buyer['Address'],
-                                        updated_buyer['Phone'],
-                                        updated_buyer['Contact'],
-                                        buyer_id))
-            self.connection.commit()
-            print("Данные покупателя успешно обновлены.")
-        except psycopg2.Error as e:
-            print(f"Ошибка обновления покупателя: {e}")
-            if self.connection:
-                self.connection.rollback()
+        query = """UPDATE Buyers 
+                  SET Name = %s, Address = %s, Phone = %s, Contact = %s 
+                  WHERE ID = %s"""
+        self.db_connector.execute_query(query, (updated_buyer['Name'],
+                                                updated_buyer['Address'],
+                                                updated_buyer['Phone'],
+                                                updated_buyer['Contact'],
+                                                buyer_id))
+        print("Данные покупателя успешно обновлены.")
+
 
     def delete_buyer(self, buyer_id):
-        try:
-            self.cursor.execute("DELETE FROM Buyers WHERE ID = %s", (buyer_id,))
-            self.connection.commit()
-            return True
-        except psycopg2.Error as e:
-            print(f"Ошибка удаления покупателя: {e}")
-            if self.connection:
-                self.connection.rollback()
-            return False
+        cursor = self.db_connector.execute_query("DELETE FROM Buyers WHERE ID = %s", (buyer_id,))
+        return cursor is not None
 
     def get_count(self):
-        try:
-            self.cursor.execute("SELECT COUNT(*) FROM Buyers")
-            result = self.cursor.fetchone()
+        cursor = self.db_connector.execute_query("SELECT COUNT(*) FROM Buyers")
+        if cursor:
+            result = cursor.fetchone()
             return result[0] if result else 0
-        except psycopg2.Error as e:
-            print(f"Ошибка получения количества покупателей: {e}")
-            return 0
+        return 0
 
     def get_k_n_short_list(self, k, n):
         offset = (k - 1) * n
-        try:
-            self.cursor.execute("SELECT Name, Address, Phone, Contact FROM Buyers LIMIT %s OFFSET %s", (n, offset))
-            results = self.cursor.fetchall()
+        cursor = self.db_connector.execute_query("SELECT Name, Address, Phone, Contact FROM Buyers LIMIT %s OFFSET %s", (n, offset))
+        if cursor:
+            results = cursor.fetchall()
             return [dict(zip(['Name', 'Address', 'Phone', 'Contact'], row)) for row in results]
-        except psycopg2.Error as e:
-            print(f"Ошибка получения списка покупателей: {e}")
-            return []
+        return []
+
 
 
 def run_operations(buyer_rep):
@@ -217,23 +220,19 @@ def main():
     password = 'vadimb'
     database = 'Buyers'
 
-    buyer_rep = None
-    try:
-        buyer_rep = BuyerRepDB(host, user, password, database)
-        buyer_rep.initialize_db()
-        run_operations(buyer_rep)
-    except psycopg2.Error as e:
-        print(f"Ошибка подключения к базе данных: {e}")
-    except Exception as e:
-        print(f"Произошла непредвиденная ошибка: {e}")
-    finally:
-        if buyer_rep:
-            buyer_rep.close()
-            print("Соединение с базой данных закрыто.")
+    db_connector = DatabaseConnector.get_instance(host, user, password, database)
+    if db_connector.connection is None:
+        print("Ошибка подключения к базе данных.")
+        return
+
+    buyer_rep = BuyerRepDB(db_connector)
+    buyer_rep.initialize_db()
+    run_operations(buyer_rep)
+    db_connector.close()
+
 
 if __name__ == "__main__":
     main()
-
 
 if __name__ == "__main__":
     main()
