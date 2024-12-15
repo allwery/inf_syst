@@ -27,10 +27,10 @@ class BuyerRepDB:
             self.cursor.execute("""
                 CREATE TABLE IF NOT EXISTS Buyers (
                     ID SERIAL PRIMARY KEY,
-                    Name VARCHAR(255) NOT NULL CHECK (Name ~* '^[a-zA-Z\s]+$'),
+                    Name VARCHAR(255) NOT NULL CHECK (Name ~* '^[а-яА-Яa-zA-Z\s]+$'),
                     Address TEXT NOT NULL,
                     Phone VARCHAR(20) NOT NULL UNIQUE CHECK (Phone ~* '^\+\d+$'),
-                    Contact TEXT NOT NULL CHECK (Contact ~* '^[a-zA-Z\s]+$')
+                    Contact TEXT NOT NULL CHECK (Contact ~* '^[а-яА-Яa-zA-Z\s]+$')
                 )
             """)
             self.connection.commit()
@@ -151,9 +151,9 @@ def run_operations(buyer_rep):
                         'Contact': input("Введите контактное лицо : ")
                     }
 
-                    if (re.fullmatch(r'^[a-zA-Z\s]+$', buyer_data['Name']) and
+                    if (re.fullmatch(r'^[а-яА-Яa-zA-Z\s]+$', buyer_data['Name']) and
                             re.fullmatch(r'^\+\d+$', buyer_data['Phone']) and
-                            re.fullmatch(r'^[a-zA-Z\s]+$', buyer_data['Contact'])):
+                            re.fullmatch(r'^[а-яА-Яa-zA-Z\s]+$', buyer_data['Contact'])):
                         break
                     else:
                         print("Неверный формат данных. Пожалуйста, повторите ввод.")
