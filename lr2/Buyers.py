@@ -10,7 +10,7 @@ class Buyer:
     def validate(field_name, field_value, expected_type):
         if not isinstance(field_value, expected_type):
             raise ValueError(f"Поле '{field_name}' должно быть типа {expected_type.__name__}.")
-        if expected_type is str and not field_value:  # Упростили проверку пустой строки
+        if expected_type is str and not field_value:  
             raise ValueError(f"Поле '{field_name}' не может быть пустым.")
         if expected_type is str and field_name == "Имя":
             if not re.fullmatch(r"[А-Яа-яЁё]+\s[А-Яа-яЁё]+", field_value):
