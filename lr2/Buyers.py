@@ -9,7 +9,7 @@ class Buyer:
     @staticmethod
     def validate(field_name, field_value, expected_type):
         if not isinstance(field_value, expected_type):
-            print(f"Поле '{field_name}' должно быть типа {expected_type.__name__}.")
+            print(f"Поле '{field_name}' должно быть типа {expected_type}.")
             return False
         if expected_type is str and not field_value:  
             print(f"Поле '{field_name}' не может быть пустым.")
